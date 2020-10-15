@@ -14,6 +14,7 @@ using NAudio.CoreAudioApi;
 using NAudio.Wave;
 using NAudio.Wave.SampleProviders;
 using RZP;
+using TagLib;
 
 namespace Musikmixer.Controllers
 {
@@ -28,23 +29,39 @@ namespace Musikmixer.Controllers
         {
             _env = env;
             _dirUploads = @"Uploads/";
-            _dirMixes = @"Uploads/Mixes/";
+            _dirMixes = @"Mixes/";
             _dirConverted = @"Converted/";
         }
 
         public IActionResult Index()
         {
-            DirectoryInfo di = new DirectoryInfo(_env);
-            foreach (FileInfo file in di.GetFiles())
-            {
-                file.Delete();
-            }
             return View();
+        }
+        public IActionResult Mixes()
+        {
+            string[] mixes = Directory.GetFiles(_dirMixes);
+            List<AllMixes> mixList = new List<AllMixes>();
+            int i = 1;
+            foreach (string mix in mixes)
+            {
+                mixList.Add(new AllMixes
+                {
+                    MixID = i++,
+                    MixTitle = Path.GetFileName(mix)
+                });
+            }
+
+            return View(mixList);
+        }
+        public FileResult DownloadMix(string Name)
+        {
+            string FileNameWithPath = Path.Combine(_dirMixes, Name);
+            byte[] bytes = System.IO.File.ReadAllBytes(FileNameWithPath);
+            return File(bytes, "application/octet-stream", Name);
         }
         public IActionResult MultipleFiles(IEnumerable<IFormFile> files, string titel)
         {
             _dirUploads = titel + "/" + _dirUploads;
-            _dirMixes = _dirUploads + @"Mixes/";
             _dirConverted = _dirUploads + @"Converted/";
             if (!Directory.Exists(_dirUploads))
             {

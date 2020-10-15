@@ -1,0 +1,39 @@
+﻿@model List<AllMixes>
+@{
+    ViewData["Title"] = "Musik Mixer";
+}
+<div>
+
+    <table border="1px" class="table table-responsive">
+
+        <tr>
+
+            <td>ID</td>
+
+            <td>Titel</td>
+
+        </tr>
+
+
+
+        @foreach (var mix in Model)
+
+        {
+
+            <tr>
+
+                <td>@mix.MixID</td>
+
+                <td>@mix.MixTitle</td>
+
+                <td>@Html.ActionLink("Download", "DownloadMix", new { Name = mix.MixTitle })</td>
+
+            </tr>
+
+
+
+        }
+
+    </table>
+
+</div>
