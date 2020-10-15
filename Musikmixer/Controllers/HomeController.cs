@@ -3,13 +3,17 @@ using System.Collections.Generic;
 using System.Diagnostics;
 using System.IO;
 using System.Linq;
+using System.Security.Cryptography.X509Certificates;
 using System.Threading.Tasks;
 using Microsoft.AspNetCore.Hosting;
 using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.Extensions.Logging;
 using Musikmixer.Models;
+using NAudio.CoreAudioApi;
 using NAudio.Wave;
+using NAudio.Wave.SampleProviders;
+using RZP;
 
 namespace Musikmixer.Controllers
 {
@@ -23,18 +27,38 @@ namespace Musikmixer.Controllers
         public HomeController(IWebHostEnvironment env)
         {
             _env = env;
-            _dirUploads = @"Uploads";
-            _dirMixes = @"Uploads/Mixes";
-            _dirConverted = @"Uploads/Converted";
+            _dirUploads = @"Uploads/";
+            _dirMixes = @"Uploads/Mixes/";
+            _dirConverted = @"Converted/";
         }
 
         public IActionResult Index()
         {
+            DirectoryInfo di = new DirectoryInfo(_env);
+            foreach (FileInfo file in di.GetFiles())
+            {
+                file.Delete();
+            }
             return View();
         }
-        public IActionResult MultipleFiles(IEnumerable<IFormFile> files)
+        public IActionResult MultipleFiles(IEnumerable<IFormFile> files, string titel)
         {
-            int i = 0;
+            _dirUploads = titel + "/" + _dirUploads;
+            _dirMixes = _dirUploads + @"Mixes/";
+            _dirConverted = _dirUploads + @"Converted/";
+            if (!Directory.Exists(_dirUploads))
+            {
+                Directory.CreateDirectory(_dirUploads);
+            }
+            if (!Directory.Exists(_dirMixes))
+            {
+                Directory.CreateDirectory(_dirMixes);
+            }
+            if (!Directory.Exists(_dirConverted))
+            {
+                Directory.CreateDirectory(_dirConverted);
+            }
+            // uploaded alle files
             foreach (var file in files)
             {
                 using (var fileStream = new FileStream(Path.Combine(_dirUploads, file.FileName), FileMode.Create, FileAccess.Write))
@@ -42,27 +66,72 @@ namespace Musikmixer.Controllers
                     file.CopyTo(fileStream);
                 }
             }
-            return RedirectToAction("ConvertFiles");
+            string[] _files = Directory.EnumerateFiles(_dirUploads).ToArray();
+
+            try
+            {
+                ConvertFiles(_files);
+            }
+            catch (Exception)
+            {
+
+                throw;
+            }
+            finally
+            {
+                StitchFiles(titel);
+            }
+            return RedirectToAction("Index");
         }
-        public IActionResult ConvertFiles()
+        public void ConvertFiles(string[] files)
         {
+            //Converted alle files zu .wav
             int i = 0;
-            foreach (var file in Directory.EnumerateFiles(_dirUploads))
+            foreach (var file in files)
             {
                 var infile = file;
-                var outfile = $"Uploads/Converted/fileconverted{i++}.mp3";
-
+                var outfile = _dirConverted + $"/fileconverted{i++}";
+                FileInfo fileInfo = new FileInfo(infile);
                 using (var reader = new MediaFoundationReader(infile))
                 {
-                    MediaFoundationEncoder.EncodeToMp3(reader, outfile);
+                    WaveFileWriter.CreateWaveFile(outfile, reader);
+                    fileInfo.Delete();
                 }
 
             }
-            return RedirectToAction("StitchFiles");
+            string[] _files = Directory.EnumerateFiles(_dirConverted).ToArray();
+            DetectBPM(_files);
         }
-        public IActionResult StitchFiles()
+        public void DetectBPM(string[] files)
         {
-            using (var output = new FileStream(Path.Combine(_dirMixes, "mix.mp3"), FileMode.Create, FileAccess.Write))
+            //Detected und setzt im ID3-Tag die BPM der einzelne files
+            string filename;
+            double bpm;
+
+            foreach (var file in Directory.EnumerateFiles(_dirConverted))
+            {
+                var fileinfo = new FileInfo(file);
+                filename = fileinfo.Name;
+                var outfile = _dirConverted + filename + ".mp3";
+                BPMDetector bPMDetector = new BPMDetector(file);
+                bpm = bPMDetector.getBPM();
+
+                using (var reader = new MediaFoundationReader(file))
+                {
+                    MediaFoundationEncoder.EncodeToMp3(reader, outfile);
+                    fileinfo.Delete();
+                }
+
+                var tfile = TagLib.File.Create(outfile);
+                tfile.Tag.BeatsPerMinute = Convert.ToUInt32(bpm);
+                tfile.Save();
+
+                Debug.WriteLine("Filename: " + outfile + ", File BPM: " + bpm);
+            }
+        }
+        public void StitchFiles(string title)
+        {
+            using (var output = new FileStream(Path.Combine(_dirMixes, title + ".mp3"), FileMode.Create, FileAccess.Write))
                 foreach (string file in Directory.EnumerateFiles(_dirConverted))
                 {
                     {
@@ -77,10 +146,66 @@ namespace Musikmixer.Controllers
                             output.Write(frame.RawData, 0, frame.RawData.Length);
                         }
                     }
-
                 }
-            return View();
+
+            //bool startFade = false;
+            //TimeSpan timeSpan = new TimeSpan(00, 00, 12);
+            //MemoryStream memRest = new MemoryStream(256000);
+            //Debug.WriteLine("song current time: " + reader.CurrentTime);
+            //if (reader.TotalTime - reader.CurrentTime < timeSpan && startFade != true)
+            //fade.BeginFadeOut(12000);
+
+            //Debug.WriteLine("<----beep beep fadeout should start here---->");
+            //startFade = true;
+            //ISampleProvider sampleProvider = reader.ToSampleProvider();
+            //var fade = new FadeInOutSampleProvider(sampleProvider);
+            //{
+
+            //    while ((frame = reader.ReadNextFrame()) != null)
+            //    {
+            //        byte[] rest = frame.RawData;
+
+            //        memRest.Write(frame.RawData, 0, frame.RawData.Length);
+            //    }
+            //}
+
+            //if (memRest.Length.ToString() != "" && reader.ReadNextFrame() != null)
+            //{
+            //    output.Write(memRest.ToArray(), 0, memRest.ToArray().Length);
+            //    output.Write(frame.RawData, 0, frame.RawData.Length);
+            //    startFade = false;
+            //}
+            //else if (reader.ReadNextFrame() != null)
+            //{
+            //}
+
+            //byte[] buffer = new byte[1024];
+            //WaveFileWriter waveFileWriter = null;
+
+            //foreach (string sourceFile in Directory.EnumerateFiles(_dirConverted))
+            //{
+            //    using (MediaFoundationReader reader = new MediaFoundationReader(sourceFile))
+            //    {
+            //        ISampleProvider sampleProvider = reader.ToSampleProvider();
+            //        var fade = new FadeInOutSampleProvider(sampleProvider);
+            //        fade.BeginFadeOut(12000);
+            //        var player = new WaveOutEvent();
+            //        player.pos
+            //        player.Init(fade);
+            //        player.Play();
+            //        while (player.PlaybackState == PlaybackState.Playing)
+            //        {
+            //            WaveFileWriter.CreateWaveFile(Path.Combine(_dirMixes, "mix.wav"), new SampleToWaveProvider(fade));
+            //        }
+
+            //    }
+            //}
+
+
         }
+
+
+
 
         [ResponseCache(Duration = 0, Location = ResponseCacheLocation.None, NoStore = true)]
         public IActionResult Error()
