@@ -9,5 +9,6 @@ namespace Musikmixer.Models
     {
         public int MixID {get; set; }
         public string MixTitle {get; set; }
+        public string MixPath { get; set; }
     }
 }

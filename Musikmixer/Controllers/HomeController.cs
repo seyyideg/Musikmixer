@@ -3,11 +3,13 @@ using System.Collections.Generic;
 using System.Diagnostics;
 using System.IO;
 using System.Linq;
+using System.Reflection.Emit;
 using System.Security.Cryptography.X509Certificates;
 using System.Threading.Tasks;
 using Microsoft.AspNetCore.Hosting;
 using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Mvc;
+using Microsoft.AspNetCore.Mvc.TagHelpers;
 using Microsoft.Extensions.Logging;
 using Musikmixer.Models;
 using NAudio.CoreAudioApi;
@@ -47,10 +49,11 @@ namespace Musikmixer.Controllers
                 mixList.Add(new AllMixes
                 {
                     MixID = i++,
-                    MixTitle = Path.GetFileName(mix)
+                    MixTitle = Path.GetFileNameWithoutExtension(mix),
+                    MixPath = "~/Mixes/" + Path.GetFileName(mix)
                 });
             }
-
+            
             return View(mixList);
         }
         public FileResult DownloadMix(string Name)
@@ -91,8 +94,8 @@ namespace Musikmixer.Controllers
             }
             catch (Exception)
             {
-
-                throw;
+                ViewBag.Error = "format wird nicht Unterschtüzt";
+                return View("Index");
             }
             finally
             {

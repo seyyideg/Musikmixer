@@ -7,7 +7,9 @@
     <form asp-controller="Home" asp-action="MultipleFiles"
           enctype="multipart/form-data" method="post">
         <input type="text" name="titel" required />
-        <input type="file"  multiple name="files" />
+        <input type="file" multiple name="files" id="fileUpload" />
         <button type="submit">Upload</button>
     </form>
+    @Html.Label((string)ViewBag.Error)
+
 </div>

@@ -11,6 +11,10 @@
             <td>ID</td>
 
             <td>Titel</td>
+            
+            <td>Anhören</td>
+            
+            <td>Download</td>
 
         </tr>
 
@@ -26,7 +30,14 @@
 
                 <td>@mix.MixTitle</td>
 
+                <td>
+                    <audio controls>
+                        <source src="@Url.Content(@mix.MixPath)" type="audio/mpeg">
+                    </audio>
+                </td>
+
                 <td>@Html.ActionLink("Download", "DownloadMix", new { Name = mix.MixTitle })</td>
+
 
             </tr>
 
