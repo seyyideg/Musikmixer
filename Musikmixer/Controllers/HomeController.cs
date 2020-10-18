@@ -59,7 +59,7 @@ namespace Musikmixer.Controllers
         public FileResult DownloadMix(string Name)
         {
             string FileNameWithPath = Path.Combine(_dirMixes, Name);
-            byte[] bytes = System.IO.File.ReadAllBytes(FileNameWithPath);
+            byte[] bytes = System.IO.File.ReadAllBytes(FileNameWithPath + ".mp3");
             return File(bytes, "application/octet-stream", Name);
         }
         public IActionResult MultipleFiles(IEnumerable<IFormFile> files, string titel)
@@ -101,7 +101,7 @@ namespace Musikmixer.Controllers
             {
                 StitchFiles(titel);
             }
-            return RedirectToAction("Index");
+            return RedirectToAction("Mixes");
         }
         public void ConvertFiles(string[] files)
         {
@@ -112,8 +112,10 @@ namespace Musikmixer.Controllers
                 var infile = file;
                 var outfile = _dirConverted + $"/fileconverted{i++}";
                 FileInfo fileInfo = new FileInfo(infile);
+                //Liest die Audiodatei mit dem Reader der alles Encoded;
                 using (var reader = new MediaFoundationReader(infile))
                 {
+                    //Schreibt das gelesene auf eine neue .wav Datei
                     WaveFileWriter.CreateWaveFile(outfile, reader);
                     fileInfo.Delete();
                 }
@@ -133,15 +135,16 @@ namespace Musikmixer.Controllers
                 var fileinfo = new FileInfo(file);
                 filename = fileinfo.Name;
                 var outfile = _dirConverted + filename + ".mp3";
+                //BPMDetector zusätzliches plugin zur Naudio Library zum messen der BPM
                 BPMDetector bPMDetector = new BPMDetector(file);
                 bpm = bPMDetector.getBPM();
-
+                //Konvertiert die Dateien zu MP3 um den Tag setzten zu können
                 using (var reader = new MediaFoundationReader(file))
                 {
                     MediaFoundationEncoder.EncodeToMp3(reader, outfile);
                     fileinfo.Delete();
                 }
-
+                //Setzt die BPM in den Id3-Tag
                 var tfile = TagLib.File.Create(outfile);
                 tfile.Tag.BeatsPerMinute = Convert.ToUInt32(bpm);
                 tfile.Save();
@@ -151,11 +154,14 @@ namespace Musikmixer.Controllers
         }
         public void StitchFiles(string title)
         {
+            //Eröffnet einen neuen FileStream zum schreiben einer neuen Datei
             using (var output = new FileStream(Path.Combine(_dirMixes, title + ".mp3"), FileMode.Create, FileAccess.Write))
                 foreach (string file in Directory.EnumerateFiles(_dirConverted))
                 {
                     {
+                        //Liest die Mp3 Dateien
                         Mp3FileReader reader = new Mp3FileReader(file);
+                        //Setzt Id3 Tags für die Datei beim ersten durchlauf 
                         if ((output.Position == 0) && (reader.Id3v2Tag != null))
                         {
                             output.Write(reader.Id3v2Tag.RawData, 0, reader.Id3v2Tag.RawData.Length);
@@ -167,7 +173,6 @@ namespace Musikmixer.Controllers
                         }
                     }
                 }
-
             //bool startFade = false;
             //TimeSpan timeSpan = new TimeSpan(00, 00, 12);
             //MemoryStream memRest = new MemoryStream(256000);

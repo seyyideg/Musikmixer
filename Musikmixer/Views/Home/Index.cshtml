@@ -3,11 +3,13 @@
 }
 
 <div class="text-center">
-    <h4>Musikmixer Songs hochladen:</h4>
+    <h1>Musikmixer Songs hochladen:</h1>
     <form asp-controller="Home" asp-action="MultipleFiles"
           enctype="multipart/form-data" method="post">
+        <span>Titel für den Mix: </span>
         <input type="text" name="titel" required />
-        <input type="file" multiple name="files" id="fileUpload" />
+        <br/>
+        <input type="file" multiple name="files" id="fileUpload" accept=".mp3, .wma, .wav" />
         <button type="submit">Upload</button>
     </form>
     @Html.Label((string)ViewBag.Error)
