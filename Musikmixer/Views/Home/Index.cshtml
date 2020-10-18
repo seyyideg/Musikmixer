@@ -2,16 +2,25 @@
     ViewData["Title"] = "Musik Mixer";
 }
 
-<div class="text-center">
+<div class="container">
     <h1>Musikmixer Songs hochladen:</h1>
     <form asp-controller="Home" asp-action="MultipleFiles"
-          enctype="multipart/form-data" method="post">
-        <span>Titel für den Mix: </span>
-        <input type="text" name="titel" required />
-        <br/>
-        <input type="file" multiple name="files" id="fileUpload" accept=".mp3, .wma, .wav" />
-        <button type="submit">Upload</button>
+          enctype="multipart/form-data" method="post" class="flex-fill">
+        <div class="form-group">
+            <span>Titel für den Mix: </span>
+            <input type="text" name="titel" required class="form-control" />
+        </div>
+        <br />
+        <div class="form-group">
+            <label for="fileUpload">Songs hochladen: </label>
+            <input type="file" multiple name="files" id="fileUpload" class="form-control-file" accept=".mp3, .wma, .wav" />
+        </div>
+        <div class="form-group">
+            <button type="submit" class="form-control">Mix erstellen</button>
+        </div>
     </form>
     @Html.Label((string)ViewBag.Error)
-
+    <audio controls class="embed-responsive-item">
+        <source src="@ViewBag.Url" type="audio/mpeg">
+    </audio>
 </div>

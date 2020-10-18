@@ -31,7 +31,7 @@ namespace Musikmixer.Controllers
         {
             _env = env;
             _dirUploads = @"Uploads/";
-            _dirMixes = @"Mixes/";
+            _dirMixes = Path.Combine(_env.WebRootPath, "Mixes");
             _dirConverted = @"Converted/";
         }
 
@@ -60,7 +60,7 @@ namespace Musikmixer.Controllers
         {
             string FileNameWithPath = Path.Combine(_dirMixes, Name);
             byte[] bytes = System.IO.File.ReadAllBytes(FileNameWithPath + ".mp3");
-            return File(bytes, "application/octet-stream", Name);
+            return File(bytes, "application/octet-stream", Name + ".mp3");
         }
         public IActionResult MultipleFiles(IEnumerable<IFormFile> files, string titel)
         {
@@ -101,7 +101,10 @@ namespace Musikmixer.Controllers
             {
                 StitchFiles(titel);
             }
-            return RedirectToAction("Mixes");
+            string mix = @"/Mixes/" + titel + ".mp3";
+            
+            ViewBag.Url = mix;
+            return View("Index");
         }
         public void ConvertFiles(string[] files)
         {

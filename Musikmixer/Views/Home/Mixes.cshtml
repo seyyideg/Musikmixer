@@ -2,18 +2,18 @@
 @{
     ViewData["Title"] = "Musik Mixer";
 }
-<div>
-
-    <table border="1px" class="table table-responsive">
+<div class="container">
+    <input type="text" id="search" placeholder="Suche"  class="input-group-text"/>
+    <table class="table table-responsive table-hover">
 
         <tr>
 
             <td>ID</td>
 
             <td>Titel</td>
-            
+
             <td>Anhören</td>
-            
+
             <td>Download</td>
 
         </tr>
@@ -24,11 +24,11 @@
 
         {
 
-            <tr>
+            <tr id="trsearch">
 
                 <td>@mix.MixID</td>
 
-                <td>@mix.MixTitle</td>
+                <td id="tdsearch">@mix.MixTitle</td>
 
                 <td>
                     <audio controls>
@@ -48,3 +48,11 @@
     </table>
 
 </div>
+<script src="https://ajax.googleapis.com/ajax/libs/jquery/3.5.1/jquery.min.js"></script>
+<script type="text/javascript" src="~/js/jquery.quicksearch.js"></script>
+<script type="text/javascript">
+    $('input#search').quicksearch('table tbody tr#trsearch', {
+        selector: 'td#tdsearch'
+    });
+
+</script>
